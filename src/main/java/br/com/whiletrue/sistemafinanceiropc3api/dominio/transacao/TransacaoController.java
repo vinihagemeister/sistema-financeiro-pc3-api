@@ -1,12 +1,18 @@
 package br.com.whiletrue.sistemafinanceiropc3api.dominio.transacao;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import javax.validation.Valid;
+
+import org.springframework.beans.BeanUtils;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,82 +25,91 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/transacao")
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class TransacaoController {
 
-    private List<Transacao> transacoes = new ArrayList<>();
+    // @Autowired
+    // private TransacaoService transacaoService;
 
-    public TransacaoController() {
+    final TransacaoService transacaoService;
+
+    public TransacaoController(TransacaoService transacaoService) {
+        this.transacaoService = transacaoService;
     }
 
     @GetMapping()
-    public List<Transacao> selectAll() {
-        return transacoes;
+    public ResponseEntity<List<Transacao>> selectAll() {
+
+        List<Transacao> listaDeTransacoes = this.transacaoService.findAll();
+
+        return ResponseEntity.status(HttpStatus.OK).body(listaDeTransacoes);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Object> selectById(@PathVariable("id") UUID id) {
+
+        Optional<Transacao> transacaoEncontrado = this.transacaoService.findById(id);
+
+        if (!transacaoEncontrado.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transação não encontrada!");
+        } else {
+            return ResponseEntity.status(HttpStatus.OK).body(transacaoEncontrado.get());
+        }
     }
 
     @PostMapping()
-    public Transacao insert(@RequestBody Transacao transacaoDaRequisicao) {
+    public ResponseEntity<Object> insert(@RequestBody @Valid TransacaoDto transacaoDaRequisicao) {
 
-        transacoes.add(transacaoDaRequisicao);
+        Transacao transacao = new Transacao();
+        // transacao.setDescricao(transacaoDaRequisicao.getDescricao());
+        // transacao.setTipo(transacaoDaRequisicao.getTipo());
+        // transacao.setValor(transacaoDaRequisicao.getValor());
+        // transacao.setSaldo(transacaoDaRequisicao.getSaldo());
 
-        return transacaoDaRequisicao;
+        BeanUtils.copyProperties(transacaoDaRequisicao, transacao);
 
-        // Transacao transacao = new Transacao();
-        // transacao.setAtivo(true);
-        // transacao.setCreatedAt(LocalDateTime.now());
-        // transacao.setUpdatedAt(LocalDateTime.now());
-        // transacao.setTipo("ENTRADA");
-        // transacao.setValor(50.0);
-        // transacao.setSaldo(100.0);
-        // transacao.setDescricao("Descrição da transação");
+        transacao.setAtivo(true);
+        transacao.setCreatedAt(LocalDateTime.now(ZoneId.of("UTC")));
+        transacao.setUpdatedAt(LocalDateTime.now(ZoneId.of("UTC")));
 
-        // transacoes.add(transacao);
+        Transacao transacaoSalva = this.transacaoService.save(transacao);
 
+        return ResponseEntity.status(HttpStatus.CREATED).body(transacaoSalva);
     }
 
     @PutMapping("/{id}")
-    public Transacao update(@PathVariable("id") UUID idDaRequisicao, @RequestBody Transacao transacaoDaRequisicao) {
+    public ResponseEntity<Object> update(@PathVariable("id") UUID idDaRequisicao,
+            @RequestBody TransacaoDto transacaoDaRequisicao) {
 
-        // Optional<Transacao> opTransacao = transacoes.stream().filter(transacao ->
-        // transacao.getId() == idDaRequisicao).findFirst();
+        Optional<Transacao> transacaoOptional = this.transacaoService.findById(idDaRequisicao);
 
-        for (int i = 0; i < transacoes.size(); i++) {
-
-            if (transacoes.get(i).getId().equals(idDaRequisicao)) {
-                transacoes.set(i, transacaoDaRequisicao);
-                return transacaoDaRequisicao;
-            }
+        if (!transacaoOptional.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transação não foi encontrada!");
 
         }
 
-        return null;
+        Transacao transacao = new Transacao();
+        BeanUtils.copyProperties(transacaoDaRequisicao, transacao);
 
+        transacao.setId(transacaoOptional.get().getId());
+        transacao.setCreatedAt(transacaoOptional.get().getCreatedAt());
+        transacao.setUpdatedAt(LocalDateTime.now(ZoneId.of("UTC")));
+
+        Transacao transacaoAtualizada = this.transacaoService.save(transacao);
+
+        return ResponseEntity.status(HttpStatus.OK).body(transacaoAtualizada);
     }
 
     @DeleteMapping("/{id}")
-    public Transacao delete(@PathVariable("id") UUID idDaRequisicao) {
+    public ResponseEntity<Object> delete(@PathVariable("id") UUID idDaRequisicao) {
 
-        for (int i = 0; i < transacoes.size(); i++) {
+        Optional<Transacao> transacaoOptional = this.transacaoService.findById(idDaRequisicao);
 
-            if (transacoes.get(i).getId().equals(idDaRequisicao)) {
-                Transacao t = transacoes.get(i);
-                transacoes.remove(i);
-                return t;
-            }
-
+        if (!transacaoOptional.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transação não encontrada!");
         }
+        transacaoService.delete(transacaoOptional.get());
+        return ResponseEntity.status(HttpStatus.OK).body("Transação deletada com sucesso!");
 
-        // Transacao transacao = transacoes.get(transacoes.size() - 1);
-        // transacoes.remove(transacoes.size() - 1);
-        return null;
     }
-
-    // @GetMapping
-    // public String index1() {
-    // return "Hello World!!";
-    // }
-
-    // @GetMapping("/index2")
-    // public String index2() {
-    // return "Index 2 Hello!";
-    // }
 }
