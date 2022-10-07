@@ -7,6 +7,8 @@ import java.util.UUID;
 import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,6 +25,10 @@ public class TransacaoService {
 
     public List<Transacao> findAll() {
         return this.transacaoRepository.findAll();
+    }
+
+    public Page<Transacao> findAllComPaginacao(Pageable pageable) {
+        return this.transacaoRepository.findAll(pageable);
     }
 
     public Optional<Transacao> findById(UUID id) {

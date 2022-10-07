@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
+import br.com.whiletrue.sistemafinanceiropc3api.dominio.usuario.Usuario;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,9 +23,11 @@ public class TransacaoDto {
     @NotNull
     private Double valor;
 
-    @NotNull
     private Double saldo;
 
     private String descricao;
+
+    @NotNull
+    private Usuario usuario;
 
 }

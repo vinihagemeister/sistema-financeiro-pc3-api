@@ -8,8 +8,14 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import br.com.whiletrue.sistemafinanceiropc3api.dominio.model.Model;
+import br.com.whiletrue.sistemafinanceiropc3api.dominio.usuario.Usuario;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,23 +29,17 @@ import java.io.Serializable;
 @NoArgsConstructor
 @Entity
 @Table
-public class Transacao implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
-
-    private Boolean ativo;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+public class Transacao extends Model implements Serializable {
 
     @Column(nullable = false)
     private String tipo;
     private Double valor;
     private Double saldo;
     private String descricao;
+
+    @ManyToOne
+    @NotNull
+    private Usuario usuario;
 
     // public Transacao() {
     // }

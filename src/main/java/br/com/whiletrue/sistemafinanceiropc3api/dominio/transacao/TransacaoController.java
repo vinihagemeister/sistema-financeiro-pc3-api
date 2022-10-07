@@ -11,6 +11,10 @@ import java.util.UUID;
 import javax.validation.Valid;
 
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -45,6 +49,12 @@ public class TransacaoController {
         return ResponseEntity.status(HttpStatus.OK).body(listaDeTransacoes);
     }
 
+    @GetMapping("selectAllComPaginacao")
+    public ResponseEntity<Page<Transacao>> selectAllComPaginacao(
+            @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.status(HttpStatus.OK).body(transacaoService.findAllComPaginacao(pageable));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Object> selectById(@PathVariable("id") UUID id) {
 
@@ -61,20 +71,48 @@ public class TransacaoController {
     public ResponseEntity<Object> insert(@RequestBody @Valid TransacaoDto transacaoDaRequisicao) {
 
         Transacao transacao = new Transacao();
-        // transacao.setDescricao(transacaoDaRequisicao.getDescricao());
-        // transacao.setTipo(transacaoDaRequisicao.getTipo());
-        // transacao.setValor(transacaoDaRequisicao.getValor());
-        // transacao.setSaldo(transacaoDaRequisicao.getSaldo());
-
         BeanUtils.copyProperties(transacaoDaRequisicao, transacao);
-
         transacao.setAtivo(true);
         transacao.setCreatedAt(LocalDateTime.now(ZoneId.of("UTC")));
         transacao.setUpdatedAt(LocalDateTime.now(ZoneId.of("UTC")));
 
+        List<Transacao> todasTransacoes = transacaoService.findAll();
+
+        if (todasTransacoes.size() > 0) {
+
+            Transacao ultimaTransacao = todasTransacoes.get(todasTransacoes.size() - 1);
+
+            if (transacao.getTipo().equals("ENTRADA")) {
+                Double saldoFinal = ultimaTransacao.getSaldo() + transacao.getValor();
+                transacao.setSaldo(saldoFinal);
+
+            } else if (transacao.getTipo().equals("SAIDA")) {
+                Double saldoFinal = ultimaTransacao.getSaldo() - transacao.getValor();
+                transacao.setSaldo(saldoFinal);
+            }
+
+        } else {
+
+            if (transacao.getTipo().equals("ENTRADA")) {
+                Double saldoFinal = transacao.getValor();
+                transacao.setSaldo(saldoFinal);
+
+            } else if (transacao.getTipo().equals("SAIDA")) {
+                Double saldoFinal = -transacao.getValor();
+                transacao.setSaldo(saldoFinal);
+            }
+
+        }
+
         Transacao transacaoSalva = this.transacaoService.save(transacao);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(transacaoSalva);
+    }
+
+    @GetMapping("consultaUltimoSaldo")
+    public ResponseEntity<Double> consultaUltimoSaldo() {
+
+        return ResponseEntity.status(HttpStatus.OK).body(20.0);
     }
 
     @PutMapping("/{id}")
